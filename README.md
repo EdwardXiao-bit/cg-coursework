@@ -22,7 +22,7 @@ cg-coursework/
 │   │   ├── HW1-报告.docx              实验报告
 │   │   ├── 2024HW1作业要求和说明.txt   作业要求
 │   │   └── 2024HW1基本功能完成效果.mp4 功能演示视频
-│   ├── submission/        雨课堂提交包（含 submit.zip）
+│   ├── submission/        雨课堂提交包（含 HW1.zip）
 │   ├── readme.md          说明文档
 │   └── fill_report.py     生成报告 docx 的脚本
 └── hw2/                   作业2（待完成）
@@ -63,7 +63,7 @@ python -m http.server 8000
 - 平台：雨课堂智慧平台 scu.yuketang.cn
 - 提交内容：程序包（源码 + 可执行程序 + readme）+ 报告
 - 提交方式：每小组提交一份
-- 每次作业的提交压缩包位于 `hwN/submission/submit.zip`
+- 每次作业的提交压缩包位于 `hwN/submission/HWN.zip`（如 `hw1/submission/HW1.zip`）
 
 ## Git 工作流
 
@@ -135,7 +135,7 @@ dsh web
 cd C:\Users\Ed\vscode_projects\cg-coursework
 mkdir hw2                                    # 新建作业目录
 # 放好 hw2\hw2Code\ 与 hw2\report\ 后：
-.\tools\build-submission.ps1 -Hw hw2         # 生成 hw2\submission\submit.zip
+.\tools\build-submission.ps1 -Hw hw2         # 生成 hw2\submission\HW2.zip
 git add .
 git commit -m "feat(hw2): 完成作业2"
 git push
@@ -143,4 +143,45 @@ git push
 
 用 AI 助手时，只需在对话里说明"这次做 HW2"，助手就会在 `hw2/` 下开展，
 不会动到已完成的 `hw1/`。
+
+### 提交包命名与内容约定
+
+| 约定 | 说明 |
+|---|---|
+| 压缩包名 | `hwN` → **`HWN.zip`**（如 `hw1` → `HW1.zip`）；需要别的名字加 `-ZipName` |
+| 包内顶层目录 | 统一多一层 `HWN/`（如 `HW1/`），解压后是一个干净的作业文件夹，不会散落一地 |
+| 演示视频 | **默认不放**进提交包。需要时加 `-IncludeVideo` 开关 |
+| 源码目录 | `hwN` → `hwNCode`（脚本自动推导，换作业无需改脚本） |
+
+#### 提交包内部结构
+
+提交的内容是「程序包（源码 + 可执行程序 + readme 说明文档）+ 报告」，
+统一装进一个 `HWN.zip` 里。以 hw1 为例：
+
+```
+HW1.zip
+└── HW1/
+    ├── source/            源码（自己写的 hw1.html / hw1.js / shaders/）
+    ├── executable/        可执行程序（完整可运行：hw1Code/ + start-server 脚本）
+    ├── 可执行程序/         ↑ 的中文名副本，方便老师直接找到
+    ├── readme.md          说明文档（运行方式、实现要点）
+    └── HW1-报告.docx       实验报告
+```
+
+```powershell
+# 常规：不含视频，生成 hw2\submission\HW2.zip
+.\tools\build-submission.ps1 -Hw hw2
+
+# 需要把演示视频一起打包时
+.\tools\build-submission.ps1 -Hw hw2 -IncludeVideo
+
+# 自定义压缩包名
+.\tools\build-submission.ps1 -Hw hw2 -ZipName "作业2提交.zip"
+```
+
+> 脚本每次把 `hwN/submission/` 整个重建后再打包，旧的 zip 会先删掉，不会出现「包中包」。
+> 打包用 .NET `ZipArchive` 手工写入（而不是 `Compress-Archive`），以保证两点：
+> 条目名用 `/` 分隔（PS 5.1 的 `Compress-Archive` 会写成 `\`，解压到 macOS/Linux 时不会被当目录分隔符），
+> 且中文目录名带正确的 UTF-8 语言标志位（否则 `可执行程序/` 会乱码）。
+> 脚本运行完会把 zip 里的条目读回来打印，末尾直接给出 `nested zip / demo video` 的核对结果。
 
