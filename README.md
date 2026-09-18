@@ -67,9 +67,41 @@ python -m http.server 8000
 
 ## Git 工作流
 
+远程仓库：`git@github.com:EdwardXiao-bit/cg-coursework.git`（SSH 方式，私有仓库）
+
 ```bash
 # 完成一次作业后
 git add .
 git commit -m "feat(hw2): 完成作业2基本要求与附加项"
 git push
 ```
+
+### 推送方式备忘（重要）
+
+本机网络环境下 **GitHub 的 HTTPS(443) 端口被阻断**，直连会报：
+
+```
+fatal: unable to access 'https://github.com/...': Recv failure: Connection was reset
+```
+
+而 **SSH(22) 端口可以正常连通**，因此本仓库必须使用 SSH 地址推送：
+
+```bash
+git remote -v
+# 应为 git@github.com:EdwardXiao-bit/cg-coursework.git
+ssh -T git@github.com      # 验证：应显示 Hi EdwardXiao-bit! You've successfully authenticated
+```
+
+排障记录：
+
+1. **不要用 HTTPS 地址**，即使能打开 github.com 网页也会在推送时被重置。
+2. **若 `ssh -T` 报 `Permission denied (publickey)`**，说明公钥没被 SSH 认到。
+   本机 `ssh-agent` 服务默认为「禁用」，仅靠 `~/.ssh/id_rsa` 也应能认证；
+   若不能，用管理员 PowerShell 执行：
+   ```powershell
+   Set-Service ssh-agent -StartupType Automatic
+   Start-Service ssh-agent
+   ssh-add "$env:USERPROFILE\.ssh\id_rsa"
+   ```
+3. **若报 `ERROR: Repository not found`**，检查远程 URL 里的用户名是否写对
+   （本账号为 `EdwardXiao-bit`，不是邮箱前缀）。
