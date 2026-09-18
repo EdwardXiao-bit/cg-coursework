@@ -137,3 +137,25 @@ hw1Code/
 
 - `Common/` 下的 `webgl-utils.js`、`initShaders2.js`、`MVnew.js` 为课程提供的公共库，未作修改。
 - 全部功能仅依赖浏览器原生 WebGL 2.0，无需安装依赖即可运行。
+
+## 八、提交包目录结构
+
+`submission/submit.zip` 解压后（`submission/` 目录下也有同样的一份）：
+
+```
+submission/
+├── source/            源码（仅源文件：hw1.html、hw1.js、shaders/）
+├── executable/        可执行程序（完整可运行页面 + 一键启动脚本）
+│   ├── hw1Code/       含 Common/ 公共库，保证无开发环境也能直接运行
+│   ├── start-server.bat   双击即启动本地服务器并打开页面
+│   └── start-server.ps1
+├── 可执行程序/        与 executable/ 内容相同，便于按中文目录名查找
+├── readme.md          说明文档
+├── HW1-报告.docx       实验报告
+├── 2024HW1基本功能完成效果.mp4  功能演示视频
+└── submit.zip         本压缩包自身（上传雨课堂用）
+```
+
+> 运行提示：`executable/` 下双击 `start-server.bat` 即可（自动启动本地 HTTP 服务器并打开浏览器）。
+> 直接双击 `hw1Code/hw1.html` 会因浏览器同源策略拦截 AJAX 读取着色器而无法运行，这是本项目唯一的运行注意事项。
+
