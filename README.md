@@ -105,3 +105,42 @@ ssh -T git@github.com      # 验证：应显示 Hi EdwardXiao-bit! You've succes
    ```
 3. **若报 `ERROR: Repository not found`**，检查远程 URL 里的用户名是否写对
    （本账号为 `EdwardXiao-bit`，不是邮箱前缀）。
+
+## 用 AI 助手（DeepSeek Harness）继续做后续作业
+
+DSH 的**工作目录（workspace）取决于启动时所在的文件夹**，会话本身不"记住"路径。
+因此每次做作业时，**先 `cd` 进本仓库再启动**，助手才能看到全部作业文件：
+
+```powershell
+cd C:\Users\Ed\vscode_projects\cg-coursework
+dsh web
+```
+
+或者直接双击仓库根目录下的一键脚本 `work-on-cg.bat`（它内部先 `cd` 到仓库根再启动）。
+
+启动后浏览器访问 <http://127.0.0.1:3080>。**注意不要**在别处（例如空的旧目录）启动，
+否则助手看不到作业文件。
+
+### 换一台电脑怎么继续
+
+```powershell
+git clone git@github.com:EdwardXiao-bit/cg-coursework.git
+cd cg-coursework
+dsh web
+```
+
+### 开始新一次作业（例如 HW2）的流程
+
+```powershell
+cd C:\Users\Ed\vscode_projects\cg-coursework
+mkdir hw2                                    # 新建作业目录
+# 放好 hw2\hw2Code\ 与 hw2\report\ 后：
+.\tools\build-submission.ps1 -Hw hw2         # 生成 hw2\submission\submit.zip
+git add .
+git commit -m "feat(hw2): 完成作业2"
+git push
+```
+
+用 AI 助手时，只需在对话里说明"这次做 HW2"，助手就会在 `hw2/` 下开展，
+不会动到已完成的 `hw1/`。
+
