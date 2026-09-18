@@ -1,0 +1,18 @@
+# ---- 操作系统 / 编辑器 ----
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# ---- 临时文件 ----
+*.tmp
+*.log
+*~
+
+# ---- WebGL 本地服务器临时产物 ----
+.chrome-tmp/
+.edge-tmp/

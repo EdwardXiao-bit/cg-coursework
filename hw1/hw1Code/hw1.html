@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" >
+<title>鼠标点击位置为中心重新绘制分形图（slider控制递归次数）</title>
+    <style>
+        canvas{
+            /*border:1px solid red;*/
+            margin: 0in;
+            top:0in;
+            left:0in;
+            position:fixed;
+            width:100%;
+            height:100%;    
+        }
+        /* 递归次数控制面板：必须盖在canvas之上（canvas是position:fixed），
+           否则鼠标事件会被canvas吃掉，滑不动的 */
+        #ui{
+            position:fixed;
+            top:10px;
+            left:10px;
+            z-index:10;
+            padding:8px 12px;
+            background:rgba(255,255,255,0.85);
+            border-radius:6px;
+            font:14px/1.6 "Microsoft YaHei", sans-serif;
+            color:#333;
+            user-select:none;
+        }
+        #depth-slider{
+            width:180px;
+            vertical-align:middle;
+        }
+    </style>
+</head>
+
+<body>
+    <script type="text/javascript" src="./Common/webgl-utils.js"></script>
+    <script type="text/javascript" src="./Common/initShaders2.js"></script>
+    <script type="text/javascript" src="./Common/MVnew.js"></script>
+    <script type="text/javascript" src="hw1.js"></script>  
+    <div id="ui">
+        递归次数：<input id="depth-slider" type="range" min="0" max="7" step="1" value="0">
+        <span id="depth-value">0</span>
+    </div>
+
+    <canvas id="gl-canvas">
+        Oops ... your browser doesn't support the HTML5 canvas element
+    </canvas>
+
+</body>
+</html>

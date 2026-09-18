@@ -1,0 +1,7 @@
+# 二进制文件：不要让 Git 做行尾转换或文本差异
+*.docx  binary
+*.doc   binary
+*.mp4   binary
+*.png   binary
+*.jpg   binary
+*.zip   binary
