@@ -1,4 +1,4 @@
-# One-click local server launcher for a homework package (hw1 / hw2 / ...).
+﻿# One-click local server launcher for a homework package (hw1 / hw2 / ...).
 # Required because the page loads shader files with synchronous AJAX,
 # which browsers block under the file:// protocol.
 #

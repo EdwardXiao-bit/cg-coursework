@@ -394,6 +394,26 @@ function mousePosition(e) {
     };
 }
 
+// 当前相机的一组世界坐标基向量：u = 屏幕右、v = 屏幕上、n = 由原点指向相机。
+// 与 TODO3 中 lookAt(eye, at, up) 的 n/u/v 保持一致，这样弧球向量才能换到世界坐标。
+function viewerBasis() {
+    var th = radians(theta), ph = radians(phi);
+    var n = vec3(Math.sin(ph) * Math.cos(th), Math.cos(ph), Math.sin(ph) * Math.sin(th));
+    var up = vec3(-Math.cos(ph) * Math.cos(th), Math.sin(ph), -Math.cos(ph) * Math.sin(th));
+    var u = normalize(cross(up, n));
+    var v = normalize(cross(n, u));
+    return { u: u, v: v, n: n };
+}
+
+// 把 (屏幕右, 屏幕上, 指向观察者) 三个分量合成世界坐标向量
+function screenToWorld(basis, s) {
+    return vec3(
+        basis.u[0] * s[0] + basis.v[0] * s[1] + basis.n[0] * s[2],
+        basis.u[1] * s[0] + basis.v[1] * s[1] + basis.n[1] * s[2],
+        basis.u[2] * s[0] + basis.v[2] * s[1] + basis.n[2] * s[2]
+    );
+}
+
 function onMouseDown(e) {
     var p = mousePosition(e);
     lastMouseX = p.x;
@@ -405,15 +425,20 @@ function onMouseDown(e) {
 function onMouseMove(e) {
     if (!dragging) return;
     var p = mousePosition(e);
+    var basis = viewerBasis();
     var v0 = trackballVector(lastMouseX, lastMouseY);
     var v1 = trackballVector(p.x, p.y);
-    var axis = cross(v0, v1); // 旋转轴 = 两个球面点的叉积
+    // 半球上的两个点先换到世界坐标，再求旋转轴：屏幕上是左手系，直接用叉积方向会反
+    var w0 = screenToWorld(basis, v0);
+    var w1 = screenToWorld(basis, v1);
+    var axis = cross(w0, w1); // 旋转轴 = 两个球面点的叉积
     var axisLen = Math.sqrt(axis[0] * axis[0] + axis[1] * axis[1] + axis[2] * axis[2]);
     if (axisLen > 1e-6) {
-        var cosAngle = Math.min(1.0, Math.max(-1.0, dot(v0, v1)));
+        var cosAngle = Math.min(1.0, Math.max(-1.0, dot(w0, w1)));
         var angle = Math.acos(cosAngle) * 180.0 / Math.PI; // 旋转角 = 两点的球面夹角
+        // MVnew 的 rotate() 用 R^T（顺时针）约定，取 -angle 才是"抓住的点跟着鼠标走"的方向；
         // 新旋转乘在左边（世界坐标系下旋转），拖动产生的旋转可以不断累积
-        trackballMatrix = mult(rotate(angle, normalize(axis)), trackballMatrix);
+        trackballMatrix = mult(rotate(-angle, normalize(axis)), trackballMatrix);
     }
     lastMouseX = p.x;
     lastMouseY = p.y;

@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$Hw = "hw1",
     # 提交包名字，默认与作业目录同名（hw1 -> HW1.zip）
     [string]$ZipName = "",
