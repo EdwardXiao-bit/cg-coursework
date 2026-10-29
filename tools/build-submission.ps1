@@ -24,7 +24,23 @@ if (-not $ZipName) { $ZipName = $Hw.ToUpper() + ".zip" }
 if (-not (Test-Path $srcCode))   { throw "Source folder not found: $srcCode" }
 if (-not (Test-Path $srcReport)) { throw "Report folder not found: $srcReport" }
 
-if (Test-Path $sub) { Remove-Item $sub -Recurse -Force }
+if (Test-Path $sub) {
+    # 上一次的暂存目录可能正被本地服务器（start-server.bat，python -m http.server）当作工作目录占用，
+    # 这时无法整体删除。退化为逐个删除：能删的删掉，删不掉的保留并在后面覆盖式重建。
+    try {
+        Remove-Item $sub -Recurse -Force -ErrorAction Stop
+    } catch {
+        Write-Warning "无法完整删除旧目录 $sub（可能被正在运行的本地服务器占用）"
+        Write-Warning "改为覆盖式重建；若打包结果里出现旧文件，请先关闭占用该目录的服务器再重跑本脚本"
+        foreach ($child in @(Get-ChildItem -LiteralPath $sub -ErrorAction SilentlyContinue)) {
+            try {
+                Remove-Item -LiteralPath $child.FullName -Recurse -Force -ErrorAction Stop
+            } catch {
+                Write-Warning "  被占用，保留：$($child.Name)"
+            }
+        }
+    }
+}
 New-Item -ItemType Directory -Path $sub -Force | Out-Null
 
 # --- 1. source code (only the files worth reading) ---
