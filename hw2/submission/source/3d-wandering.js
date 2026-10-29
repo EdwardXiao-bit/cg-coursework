@@ -455,12 +455,14 @@ function onMouseUp() {
  * ****************************************************************/
 // 取某个天体的“坐标系”矩阵（不含自身自转与缩放），供子天体继承：
 // 父坐标系 → 轨道倾角 → 绕 Y 轴公转角 → 平移到轨道半径处
+// 注意：MVnew 的 rotate() 矩阵是标准旋转的转置（顺时针约定，见鼠标跟踪球一节），
+// 这里写 -orbitAngle 才等于标准右手系 R_y(+angle)，从 +Y 俯视是逆时针公转（与真实太阳系一致）。
 function solarFrame(index) {
     var body = solarBodies[index];
     var parentFrame = (body.parent >= 0) ? solarFrame(body.parent) : mat4();
     return mult(parentFrame,
            mult(rotate(body.tilt, vec3(1.0, 0.0, 0.0)),
-           mult(rotate(body.orbitAngle, vec3(0.0, 1.0, 0.0)),
+           mult(rotate(-body.orbitAngle, vec3(0.0, 1.0, 0.0)),
                 translate(body.orbitR, 0.0, 0.0))));
 }
 
