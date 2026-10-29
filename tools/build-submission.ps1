@@ -1,4 +1,4 @@
-﻿param(
+param(
     [string]$Hw = "hw1",
     # 提交包名字，默认与作业目录同名（hw1 -> HW1.zip）
     [string]$ZipName = "",
@@ -28,10 +28,20 @@ if (Test-Path $sub) { Remove-Item $sub -Recurse -Force }
 New-Item -ItemType Directory -Path $sub -Force | Out-Null
 
 # --- 1. source code (only the files worth reading) ---
+# 各次作业的源码文件名不同，按作业名列出（hw1 用 hw1.html/hw1.js；hw2 是 3d-wandering.* 加 models-data.js）
+$srcFileMap = @{
+    "hw1" = @("hw1.html", "hw1.js")
+    "hw2" = @("3d-wandering.html", "3d-wandering.js", "models-data.js")
+}
+$srcFiles = $srcFileMap[$Hw]
+if (-not $srcFiles) { $srcFiles = @(($Hw + ".html"), ($Hw + ".js")) }
 $srcDir = Join-Path $sub "source"
 New-Item -ItemType Directory -Path (Join-Path $srcDir "shaders") -Force | Out-Null
-Copy-Item (Join-Path $srcCode ($Hw + ".html")) $srcDir -Force
-Copy-Item (Join-Path $srcCode ($Hw + ".js"))   $srcDir -Force
+foreach ($f in $srcFiles) {
+    $p = Join-Path $srcCode $f
+    if (-not (Test-Path $p)) { throw "Source file not found: $p" }
+    Copy-Item $p $srcDir -Force
+}
 Copy-Item (Join-Path $srcCode "shaders\*")     (Join-Path $srcDir "shaders") -Force
 
 # --- 2. runnable program: two identical copies, one ASCII name one Chinese name ---
