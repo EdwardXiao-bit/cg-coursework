@@ -19,6 +19,7 @@ var currentModel = 'cube';   // 当前显示的模型
 var trackballMatrix;         // 附加项②：鼠标拖动累积的旋转矩阵（虚拟跟踪球）
 var isCulling = false;       // 附加项④：后向面剔除开关
 var isDepthTest = true;      // 附加项④：深度缓存消隐开关
+var isAxisVisible = true;    // 附加项④：是否画各天体的自转轴（太阳系模型）
 var initialized = false;     // 初始化完成后 resize() 才渲染，避免对空缓冲区渲染产生告警
 var animating = false;       // 附加项④：太阳系动画是否在播放
 var lastFrameTime = 0;
@@ -138,6 +139,11 @@ window.onkeydown = function(e){
 			
 		case 70:    // F-切换深度缓存消隐（附加项④）
             isDepthTest = !isDepthTest;
+            syncToggleUI();
+            break;
+
+		case 76:    // L-显示/隐藏各天体的自转轴（附加项④）
+            isAxisVisible = !isAxisVisible;
             syncToggleUI();
             break;
 			
@@ -498,6 +504,19 @@ function drawSolarSystem(baseMatrix) {
         gl.uniformMatrix4fv(u_ModelMatrix, false, flatten(m));
         gl.drawArrays(gl.TRIANGLES, body.start, body.count);
     }
+    // 最后画自转轴：轴用 LINES 画，长度是半径的 1.7 倍，球体内部那一段被深度缓存挡住，
+    // 只露出两极外侧，正好能看出自转轴的方向（倾斜 23.5° 的地球、几乎竖直的水星对比明显）
+    if (isAxisVisible) {
+        gl.lineWidth(2.0);
+        for (var j = 0; j < solarBodies.length; j++) {
+            var axisBody = solarBodies[j];
+            if (axisBody.axisCount <= 0) continue;
+            var am = mult(baseMatrix, solarModelMatrix(j));
+            gl.uniformMatrix4fv(u_ModelMatrix, false, flatten(am));
+            gl.drawArrays(gl.LINES, axisBody.axisStart, axisBody.axisCount);
+        }
+        gl.lineWidth(1.0);
+    }
 }
 
 // 附加项④：逐帧更新公转、自转角度，形成动画
@@ -534,8 +553,10 @@ function solarAnimate(t) {
 function syncToggleUI() {
     var cull = document.getElementById('cullCheckbox');
     var depth = document.getElementById('depthCheckbox');
+    var axis = document.getElementById('axisCheckbox');
     if (cull) cull.checked = isCulling;
     if (depth) depth.checked = isDepthTest;
+    if (axis) axis.checked = isAxisVisible;
 }
 
 function applyQueryParameters() {
@@ -552,6 +573,7 @@ function applyQueryParameters() {
     if (query.orth === '0') isOrth = false;
     if (query.cull === '1') isCulling = true;
     if (query.depth === '0') isDepthTest = false;
+    if (query.axes === '0') isAxisVisible = false;
     if (query.scale) modelScale = parseFloat(query.scale);
     if (query.theta) theta = parseFloat(query.theta);
     if (query.phi) phi = parseFloat(query.phi);

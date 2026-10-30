@@ -26,8 +26,8 @@
         
 </head>
 <body>
-    <div style="display:flex; justify-content:space-between; line-height:20px; color:black; font-size:1vw;">    
-        <div>
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; padding:2px 4px; color:black; font-size:0.85vw; line-height:18px;">
+        <div style="display:flex; align-items:center; flex-wrap:wrap; gap:8px;">
             <text>模型：</text>
             <select id="modelSelect" onchange="modelChange(this.value)">
                 <option value="cube">方块</option>
@@ -35,22 +35,28 @@
                 <option value="hat">墨西哥帽</option>
                 <option value="solar">太阳系（附加项①④）</option>
             </select>
-            <label style="margin-left:10px;">
+            <label>
                 <input type="checkbox" id="cullCheckbox" onchange="isCulling = this.checked; render();">
                 后向面剔除(B)
             </label>
-            <label style="margin-left:10px;">
+            <label>
                 <input type="checkbox" id="depthCheckbox" checked onchange="isDepthTest = this.checked; render();">
                 深度缓存(F)
             </label>
+            <label>
+                <input type="checkbox" id="axisCheckbox" checked onchange="isAxisVisible = this.checked; render();">
+                自转轴(L)
+            </label>
         </div>
-		<text>鼠标拖动-旋转物体</text>
-		<text>Z/C-物体整体放大/缩小</text>
-        <text>W/S-相机绕X轴旋转</text>
-		<text>A/D-相机绕Y轴旋转</text>
-        <text>P-切换投影方式</text>
-        <text>M/N-透视投影时调整俯仰角</text>
-        <text>空格-重置复位</text>
+        <div style="display:flex; justify-content:flex-end; flex-wrap:wrap; gap:10px; max-width:62%; text-align:right;">
+            <text>鼠标拖动-旋转物体</text>
+            <text>Z/C-放大/缩小</text>
+            <text>W/S-绕X轴转</text>
+            <text>A/D-绕Y轴转</text>
+            <text>P-投影方式</text>
+            <text>M/N-俯仰角</text>
+            <text>空格-复位</text>
+        </div>
     </div>
     <div style="display: flex; justify-content: center;">
         <canvas id="canvas">Oops ... your browser doesn't support the HTML5 canvas element</canvas>

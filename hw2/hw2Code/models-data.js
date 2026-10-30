@@ -237,6 +237,8 @@ function unitMidpoint(p, q) {
 
 /****************************************************
  * 单位球：从正四面体出发递归细分 subdiv 次
+ * color 既可以是固定的 vec4，也可以是函数 dir → vec4：后者按顶点方向算颜色，
+ * 行星表面的纬度带、经度条纹、斑点就靠它画出来，自转时花纹跟着转，才看得出在转。
  * 返回该球体在 points 数组中的 [start, count] 区间，
  * 这样多个球体可以共用同一个缓冲区，绘制时按区间分别上传模型矩阵
  ****************************************************/
@@ -265,14 +267,78 @@ function pushUnitSphere(subdiv, color) {
         tris = next;
     }
 
+    // 固定颜色时包一层函数，后面统一按方向取色
+    var colorAt = (typeof color === 'function') ? color : function () { return color; };
+
     for (var t = 0; t < tris.length; t++) {
+        var p0 = tris[t][0], p1 = tris[t][2], p2 = tris[t][1];
         // 顶点顺序取 a,c,b：翻转基准四面体三角形的朝向，使球的外表面为逆时针(CCW)，
         // 打开“后向面剔除”时才保留外表面而剔除背面
-        pushSphereVertex(tris[t][0], color);
-        pushSphereVertex(tris[t][2], color);
-        pushSphereVertex(tris[t][1], color);
+        pushSphereVertex(p0, colorAt(p0));
+        pushSphereVertex(p1, colorAt(p1));
+        pushSphereVertex(p2, colorAt(p2));
     }
     return { start: start, count: points.length - start };
+}
+
+// 颜色分量限幅到 [0,1]，避免明暗调制后溢出
+function clampColor(c) {
+    return vec4(Math.min(Math.max(c[0], 0.0), 1.0),
+                Math.min(Math.max(c[1], 0.0), 1.0),
+                Math.min(Math.max(c[2], 0.0), 1.0),
+                1.0);
+}
+
+/****************************************************
+ * 行星表面着色：输入是单位球上的方向 (x, y, z)，输出这个顶点的颜色。
+ *   bandAmp/bandFreq    —— 纬度方向的明暗带（木星条纹、金星云带）
+ *   stripeAmp/stripeFreq—— 经度方向的分块明暗，让“转没转”一眼能看出来
+ *   land/landCos        —— 以若干方向为中心的地块（地球陆地、火星暗区）
+ *   spotDir/spotCos     —— 单个斑点（木星大红斑、太阳黑子）
+ *   poleCap/poleColor   —— 南北极冠
+ * 这些只是明暗与换色，不改变几何，顶点数不变。
+ ****************************************************/
+function planetColor(dir, cfg) {
+    var lat = dir[1];
+    var lon = Math.atan2(dir[2], dir[0]);
+    var r = cfg.base[0], g = cfg.base[1], b = cfg.base[2];
+
+    var shade = 1.0;
+    if (cfg.bandAmp) shade += cfg.bandAmp * Math.sin(cfg.bandFreq * Math.PI * lat);
+    if (cfg.stripeAmp) shade += cfg.stripeAmp * Math.sin(cfg.stripeFreq * lon);
+    r *= shade; g *= shade; b *= shade;
+
+    if (cfg.land && cfg.landCos) {
+        for (var i = 0; i < cfg.land.length; i++) {
+            var c = cfg.land[i];
+            if (dir[0] * c[0] + dir[1] * c[1] + dir[2] * c[2] > cfg.landCos) {
+                r = cfg.landColor[0]; g = cfg.landColor[1]; b = cfg.landColor[2];
+                break;
+            }
+        }
+    }
+    if (cfg.spotDir) {
+        var s = cfg.spotDir;
+        if (dir[0] * s[0] + dir[1] * s[1] + dir[2] * s[2] > cfg.spotCos) {
+            r = cfg.spotColor[0]; g = cfg.spotColor[1]; b = cfg.spotColor[2];
+        }
+    }
+    if (cfg.poleCap && Math.abs(lat) > cfg.poleCap) {
+        r = cfg.poleColor[0]; g = cfg.poleColor[1]; b = cfg.poleColor[2];
+    }
+    return clampColor([r, g, b]);
+}
+
+// 自转轴：局部坐标里沿 Y 轴的一条线段。太阳系里所有天体都绕自身 Y 轴自转，
+// 这条线就是自转轴；轴的倾斜由坐标系里的 tilt 决定，所以画在模型矩阵里会自动跟着倾斜。
+// halfLength 是单位球坐标下的半长，绘制时会随天体半径一起缩放。
+function pushSpinAxis(halfLength, color) {
+    var start = points.length;
+    points.push(vec4(0.0, -halfLength, 0.0, 1.0));
+    points.push(vec4(0.0,  halfLength, 0.0, 1.0));
+    colors.push(color);
+    colors.push(color);
+    return { start: start, count: 2 };
 }
 
 // 行星轨道线：半径 orbitR 的圆（XZ 平面），用 LINES 画，仅作视觉参考
@@ -291,9 +357,11 @@ function pushOrbitCircle(orbitR, segments) {
 }
 
 // 增加一个天体：细分次数、半径、轨道半径、父天体索引（-1表示绕太阳）、
-// 公转角速度、自转角速度（度/秒）、轨道倾角、颜色
-function addSolarBody(name, subdiv, radius, orbitR, parent, orbitSpeed, spinSpeed, tilt, color) {
-    var range = pushUnitSphere(subdiv, color);
+// 公转角速度、自转角速度（度/秒）、轨道倾角、表面配置 surface（底色、花纹、自转轴外观）
+function addSolarBody(name, subdiv, radius, orbitR, parent, orbitSpeed, spinSpeed, tilt, surface) {
+    var range = pushUnitSphere(subdiv, function (dir) { return planetColor(dir, surface); });
+    var axisColor = surface.axisColor ? clampColor(surface.axisColor) : vec4(0.0, 0.62, 0.95, 1.0);
+    var axis = pushSpinAxis(surface.axisLength || 2.3, axisColor);
     var orbit = { start: -1, count: 0 };
     if (parent >= 0) {
         orbit = pushOrbitCircle(orbitR, 96); // 有父天体才有公转轨道线
@@ -306,8 +374,11 @@ function addSolarBody(name, subdiv, radius, orbitR, parent, orbitSpeed, spinSpee
         orbitSpeed: orbitSpeed,
         spinSpeed: spinSpeed,
         tilt: tilt,
+        surface: surface,
         start: range.start,
         count: range.count,
+        axisStart: axis.start,
+        axisCount: axis.count,
         orbitStart: orbit.start,
         orbitCount: orbit.count,
         orbitAngle: solarBodies.length * 47.0, // 初始相位错开，避免所有行星排在一条直线上
@@ -319,16 +390,51 @@ function addSolarBody(name, subdiv, radius, orbitR, parent, orbitSpeed, spinSpee
 /****************************************************
  * 太阳系：太阳 + 6 颗行星 + 1 颗卫星(月球)，月球是地球的子天体，
  * 体现层次建模：月球的坐标依赖地球的坐标系（地球公转到哪，月球跟到哪）
+ * 每个天体的 surface 决定它表面的花纹：纬度带 + 经度条纹保证自转看得出来，
+ * spot/land 给木星画大红斑、给地球画大陆、给水星和月球画暗区。
  ****************************************************/
 function generateSolarSystem() {
     solarBodies = [];
-    addSolarBody('太阳', 4, 0.220, 0.00, -1,   0.0,  25.0,  0.0, vec4(1.00, 0.82, 0.16, 1.0));
-    addSolarBody('水星', 3, 0.045, 0.42, 0,   62.0,   0.0,  0.0, vec4(0.72, 0.68, 0.62, 1.0));
-    addSolarBody('金星', 3, 0.075, 0.60, 0,   45.0,   0.0,  3.0, vec4(0.95, 0.78, 0.45, 1.0));
-    var earth = addSolarBody('地球', 3, 0.085, 0.82, 0, 34.0, 120.0, 23.5, vec4(0.25, 0.55, 1.00, 1.0));
-    addSolarBody('月球', 2, 0.030, 0.17, earth, 240.0,  0.0,  5.0, vec4(0.82, 0.82, 0.82, 1.0));
-    addSolarBody('火星', 3, 0.060, 1.05, 0,   24.0,   0.0,  1.8, vec4(0.90, 0.35, 0.20, 1.0));
-    addSolarBody('木星', 3, 0.150, 1.30, 0,   15.0,  80.0,  1.3, vec4(0.85, 0.66, 0.48, 1.0));
+    addSolarBody('太阳', 4, 0.220, 0.00, -1,   0.0,  25.0,  0.0, {
+        base: [1.00, 0.82, 0.16], bandAmp: 0.05, bandFreq: 12, stripeAmp: 0.05, stripeFreq: 6,
+        spotDir: [0.55, -0.35, 0.76], spotCos: 0.94, spotColor: [0.90, 0.42, 0.08],
+        axisColor: [0.55, 0.25, 0.02], axisLength: 2.0
+    });
+    addSolarBody('水星', 3, 0.045, 0.42, 0,   62.0,   0.0,  0.0, {
+        base: [0.72, 0.68, 0.62], bandAmp: 0.04, bandFreq: 8, stripeAmp: 0.09, stripeFreq: 3,
+        land: [[0.60, 0.30, 0.74], [-0.55, -0.20, 0.81], [0.10, 0.70, -0.70]],
+        landCos: 0.86, landColor: [0.46, 0.43, 0.40]
+    });
+    addSolarBody('金星', 3, 0.075, 0.60, 0,   45.0,   0.0,  3.0, {
+        base: [0.95, 0.78, 0.45], bandAmp: 0.09, bandFreq: 5, stripeAmp: 0.10, stripeFreq: 4,
+        axisColor: [0.85, 0.55, 0.10]
+    });
+    var earth = addSolarBody('地球', 3, 0.085, 0.82, 0, 34.0, 120.0, 23.5, {
+        base: [0.14, 0.36, 0.80], bandAmp: 0.04, bandFreq: 3, stripeAmp: 0.03, stripeFreq: 2,
+        land: [[0.45, 0.45, 0.77], [-0.60, 0.10, 0.79], [0.10, -0.35, 0.93],
+               [-0.20, 0.75, 0.63], [0.85, 0.15, -0.50], [-0.30, -0.80, 0.51]],
+        landCos: 0.78, landColor: [0.22, 0.52, 0.25],
+        poleCap: 0.90, poleColor: [0.92, 0.96, 1.00],
+        axisColor: [0.00, 0.55, 0.95]
+    });
+    addSolarBody('月球', 2, 0.030, 0.17, earth, 240.0,  0.0,  5.0, {
+        base: [0.80, 0.80, 0.82], bandAmp: 0.04, bandFreq: 6, stripeAmp: 0.05, stripeFreq: 3,
+        land: [[0.30, -0.50, 0.81], [-0.75, -0.20, 0.63], [0.20, 0.75, 0.63]],
+        landCos: 0.82, landColor: [0.55, 0.55, 0.60]
+    });
+    addSolarBody('火星', 3, 0.060, 1.05, 0,   24.0,   0.0,  1.8, {
+        base: [0.86, 0.42, 0.24], bandAmp: 0.05, bandFreq: 5, stripeAmp: 0.05, stripeFreq: 3,
+        land: [[-0.40, 0.20, 0.89], [0.50, -0.30, 0.81]],
+        landCos: 0.84, landColor: [0.58, 0.26, 0.15],
+        poleCap: 0.92, poleColor: [0.95, 0.93, 0.90],
+        axisColor: [0.85, 0.25, 0.10]
+    });
+    addSolarBody('木星', 3, 0.150, 1.30, 0,   15.0,  80.0,  1.3, {
+        base: [0.87, 0.72, 0.53], bandAmp: 0.16, bandFreq: 9, stripeAmp: 0.04, stripeFreq: 3,
+        stripeAmp: 0.05, stripeFreq: 3,
+        spotDir: [0.60, 0.50, 0.62], spotCos: 0.88, spotColor: [0.76, 0.28, 0.18],
+        axisColor: [0.70, 0.45, 0.15]
+    });
 }
 
 
