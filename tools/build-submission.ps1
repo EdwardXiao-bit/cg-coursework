@@ -48,6 +48,7 @@ New-Item -ItemType Directory -Path $sub -Force | Out-Null
 $srcFileMap = @{
     "hw1" = @("hw1.html", "hw1.js")
     "hw2" = @("3d-wandering.html", "3d-wandering.js", "models-data.js")
+    "hw3" = @("Phongshading.html", "Phongshading.js", "Models.js", "configTexture.js", "configMaterialParameters.js")
 }
 $srcFiles = $srcFileMap[$Hw]
 if (-not $srcFiles) { $srcFiles = @(($Hw + ".html"), ($Hw + ".js")) }
