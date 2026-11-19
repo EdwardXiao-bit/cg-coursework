@@ -259,6 +259,15 @@ hw3Code/
    再用 `chrome --headless=new --enable-unsafe-swiftshader --screenshot` 截不同配置的图逐一对比。
    无头 Chrome 默认没有 GPU，必须加 `--enable-unsafe-swiftshader` 才会跑软件 WebGL。
 
+9. **按 O / T / G / H 完全没反应**
+   —— 验收时发现的。四个键都改的是 `box.frag` 里的 uniform（`shadowStrength`、`pcfOn`、`fogDensity`、`reflectStrength`），
+   但 `configurePhongModelMeterialParameters(program)` 里漏了 `gl.useProgram(program)`。
+   `gl.uniform*` 只作用于"当前正在使用的 program"，上一次 `render()` 结束时 current program 是天空盒
+   `skyboxProgram`，于是 `getUniformLocation(program, …)` 拿到的 location 与当前 program 不匹配，
+   uniform 上传静默失败（控制台只报 INVALID_OPERATION），画面自然不变。
+   在函数开头补一句 `gl.useProgram(program)` 后，四个键都生效；用临时页直接调用 `window.onkeydown` 并
+   回读 `gl.getUniform` 验证：O→shadow 1→0、T→pcf 1→0、G→fog 0.022→0、H→refl 0.35→1。
+
 ## 七、说明
 
 - `Common/` 下三个公共库未改；改动集中在 `configTexture.js`、`configMaterialParameters.js`、

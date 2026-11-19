@@ -129,6 +129,14 @@ DIFFICULTY = [
     "无头 Chrome 必须加 --enable-unsafe-swiftshader 才有软件 WebGL，截图路径必须是绝对路径。"
     "然后用 Python(PIL) 统计两张截图的像素差异，确认每个开关都确有可见变化："
     "关阴影影响 22644 像素、反射弱/强差 481345 像素、关雾差 203393 像素、PCF 与硬阴影差 890 像素（阴影面积本身不大）。",
+
+    "9、按 O / T / G / H 四个开关完全没反应。这四个键改的都是 box.frag 里的 uniform"
+    "（shadowStrength、pcfOn、fogDensity、reflectStrength），但 configurePhongModelMeterialParameters(program) "
+    "里没有 gl.useProgram(program)。gl.uniform* 只对「当前正在使用的 program」生效，而上一次 render() "
+    "结束时 current program 是天空盒的那份 program，于是 getUniformLocation 拿到的 location 与当前 program "
+    "不匹配，上传静默失败，画面自然不变。在函数开头补一句 gl.useProgram(program) 后四个键都生效；"
+    "验证方式是临时页直接调用 window.onkeydown，再回读 gl.getUniform：O→shadow 1→0、T→pcf 1→0、"
+    "G→fog 0.022→0、H→refl 0.35→1。",
 ]
 
 INSIGHT = [

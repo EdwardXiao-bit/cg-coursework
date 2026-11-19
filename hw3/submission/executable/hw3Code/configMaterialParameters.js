@@ -16,6 +16,10 @@ var shadowStrength = 1.0;
 var pcfOn = 1.0;
 
 function configurePhongModelMeterialParameters(program) {
+	// 关键：gl.uniform* 只会作用在“当前正在使用的 program”上。
+	// 键盘改参数时，上一次 render 结束时 current program 是天空盒，这里必须先切回来，
+	// 否则 getUniformLocation(program, …) 拿到的 location 与当前 program 不匹配，uniform 上传会静默失败。
+	gl.useProgram(program);
 
 	//----------传递材质的常量参数给shader--------------------------------------------------------
 	gl.uniform1f( gl.getUniformLocation(program,  "ambientStrength"), ambientStrength);// 原名 ambientKaStrength 与 shader 不一致，已修正
