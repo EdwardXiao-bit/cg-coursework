@@ -155,21 +155,44 @@ INSIGHT = [
 ]
 
 REFERENCES = [
-    "[1] LearnOpenGL：Shadow Mapping、Cubemaps、Physically Based Rendering 章节，https://learnopengl.com",
-    "[2] MDN WebGL 2.0 文档：Texture2D / TextureCubeMap / textureSize / DEPTH_COMPONENT32F，https://developer.mozilla.org/docs/Web/API/WebGL_API",
-    "[3] 课程课件：《Phong 光照模型与 Phong Shading》《阴影映射 Shadow Map》",
-    "[4] 课程提供的框架代码（Common/MVnew.js、Common/initShaders2.js、Models.js 等）",
-    "[5] Khronos Group：《OpenGL ES 3.0 / WebGL 2.0 Specification》",
+    "[1] B. T. Phong. Illumination for Computer Generated Pictures. Communications of the ACM, "
+    "18(6): 311–317, 1975.（Phong 光照模型与 Phong 着色的原始论文）",
+    "[2] J. F. Blinn. Models of Light Reflection for Computer Synthesized Pictures. "
+    "Proceedings of SIGGRAPH '77, 192–198, 1977.（半程向量高光，本次实现采用的 Blinn-Phong 形式）",
+    "[3] J. F. Blinn, M. E. Newell. Texture and Reflection in Computer Generated Images. "
+    "Communications of the ACM, 19(10): 542–547, 1976.（纹理与环境反射的早期工作，附加项①的依据）",
+    "[4] L. Williams. Casting Curved Shadows on Curved Surfaces. Proceedings of SIGGRAPH '78, "
+    "270–274, 1978.（Shadow Map 的原始论文）",
+    "[5] W. T. Reeves, D. H. Salesin, R. L. Cook. Rendering Antialiased Shadows with Depth Maps. "
+    "Proceedings of SIGGRAPH '87, 283–291, 1987.（PCF 阴影反走样，附加项③的依据）",
+    "[6] J. T. Kajiya. The Rendering Equation. Proceedings of SIGGRAPH '86, 143–150, 1986."
+    "（局部光照与全局光照的边界，用于说明本作业只做局部光照）",
+    "[7] LearnOpenGL：Shadow Mapping、Cubemaps、Physically Based Rendering 章节，https://learnopengl.com",
+    "[8] MDN WebGL 2.0 文档：Texture2D / TextureCubeMap / textureSize / DEPTH_COMPONENT32F，"
+    "https://developer.mozilla.org/docs/Web/API/WebGL_API",
+    "[9] 课程课件：《Phong 光照模型与 Phong Shading》《阴影映射 Shadow Map》"
+    "；课程提供的框架代码（Common/MVnew.js、Common/initShaders2.js、Models.js 等）",
 ]
 
 AI_NOTE = [
-    "使用了 DeepSeek Harness（带浏览器与无头截图能力的 agentic 编码工具）辅助完成本次作业。"
-    "它主要用在三件事上：一是通读课程框架、定位到三处 TODO 与框架自身的几个 bug（纹理单元冲突、"
-    "uniform 名字不一致、readBuffer 传数组）；二是写 shader 与调参，每次改动后起本地服务器、"
-    "用无头 Chrome 截图对比；三是把截图差异用 PIL 统计成像素数字，作为「特效确实生效」的证据。",
-    "需要说明的是：所有代码改动与最终取舍都由我们逐处审阅确认，光照/阴影的公式与参数含义、"
-    "阴影脱开与自阴影的成因判断，都是我们自己理解后再定下来的；报告的排版由 fill_report.py 生成，"
-    "正文内容由我们撰写与修改。验证方式也都是可复现的：同一页面不同 URL 参数各截一张图做像素差。",
+    "使用的工具：DeepSeek Harness（一个 agentic 编码工具，可以读源码、执行命令、启动本地 HTTP 服务器，"
+    "并驱动无头 Chrome 截图）。使用时间为 2026 年 11 月，作用于本次编程作业的开发与验证环节。",
+
+    "用它解决的问题主要有四类。第一，通读课程框架并定位三处 TODO：它把 Phongshading.js、box.vert/frag、"
+    "Models.js 之间的数据流（points/normals/texCoords 分段、u_LightSpaceMatrix、深度帧缓冲）整理成图，"
+    "并指出框架自身的几个问题——环境光 uniform 名写成 ambientKaStrength、cubeMap 在 image.onload 里未重新绑定、"
+    "gl.readBuffer 传了数组、cubeMap 与 2D 纹理抢同一个纹理单元，这些我们逐一确认后才修改。"
+    "第二，写 box.frag 里的 Phong 光照、PCF 阴影、cubeMap 反射和雾的计算，以及在 Phongshading.js 里加"
+    "开关按键与 URL 参数。第三，做参数扫描：每次改动后它起本地服务器、用无头 Chrome 截不同配置的图，"
+    "再用 Python(PIL) 统计像素差异，把「效果有没有生效」变成具体数字。第四，在我们报告「按 O/T/G/H 没反应」后，"
+    "用它写临时页直接调用 window.onkeydown 并回读 gl.getUniform，定位到 configurePhongModelMeterialParameters "
+    "缺少 gl.useProgram(program) 这一行。",
+
+    "我们的核对与边界：所有代码改动都逐处审阅过，半程向量、PCF 的 3×3 平均、Fresnel 加权混合、"
+    "exp(-(d·k)²) 雾公式都是理解后再定；光源视锥收到 90°、远平面 50、地面平移到 -0.45、"
+    "阴影偏移 0.0025 这些数值由我们判断并验证；阴影脱开与自阴影条纹的成因也是我们自己分析确认的。"
+    "报告的版式由 hw3/fill_report.py 生成，正文内容由我们撰写与修改；纹理与天空盒图片均来自课程素材，"
+    "不是 AI 生成的。如需复核，可对照仓库中的 git 提交记录与 hw3/_proof 下的截图。",
 ]
 
 
